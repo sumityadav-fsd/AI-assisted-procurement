@@ -1,31 +1,25 @@
-# Mentor questions and unresolved assumptions
+# Mentor questions and assumptions
 
-Owner: Member 3. Mark answers here with date/time and who answered.
+Answers should be recorded with date/time and the person who confirmed them. Do not place real vendor names, rates or source terms in this public document.
 
-## Ask first (blocks design)
+## Questions requiring confirmation
 
-1. **Real data and external AI:** may Vinayak's real documents be sent to Sarvam AI / a fallback provider during the hackathon? Which providers are acceptable?
-   Until answered, build and demo on synthetic data; keep any real-data caches in gitignored `data_private/`.
-2. **Comparison basis:** compare vendors at the **RFQ quantity** (our ASSUMPTION) or at each vendor's own quoted quantity? Quotes in the data pack differ in quantities and dates.
-3. **Unit/quantity mismatch policy:** is flag-and-exclude-until-human-resolves correct, or should some conversions (e.g. sqft to sqm) be auto-applied with a visible note?
-4. **GST:** if a vendor does not state GST basis, is "total unknown" right, or does Vinayak assume the RFQ term (GST extra)?
+1. **External AI permission:** may real company documents be sent to Sarvam Document AI / Sarvam chat during the hackathon? Until confirmed, do not upload private documents to an external provider.
+2. **Comparison basis:** confirm that all vendors should be compared at the RFQ quantity (the current implementation assumption).
+3. **Mismatch policy:** confirm that quantity/unit differences remain excluded until a named human supplies a `UnitResolution`.
+4. **GST:** confirm that an unstated GST basis or missing extra-GST rate must leave the inclusive total UNKNOWN.
+5. **Term handling:** confirm whether commercial-term deviations are warnings/caveats only or should block shortlisting.
 
-## Assumptions we made (ASSUMPTION)
+## Explicit assumptions
 
-- Shortlist = lowest total incl. GST among vendors whose lines are all comparable; term deviations shown as caveats, not auto-penalised.
-- Approval has no authentication; `approver_name` is free text.
-- Near-duplicate ERP descriptions are surfaced to the human, never auto-resolved.
-- Confidence scores for ERP matching are heuristic, not calibrated.
-- RFQ is generated as text for a human to send; the system sends no email.
-- Standard six terms are the same for every RFQ.
+- ERP confidence is a deterministic lexical similarity score, not a calibrated probability.
+- Similarity threshold for classifying a vendor term as accepted is an ASSUMPTION and needs mentor review.
+- Shortlist ranks only vendors with all RFQ lines comparable and a known GST-inclusive total.
+- No vendor ratings or historical performance are available; none are invented.
+- Approval identity is free text because authentication is out of scope.
 
-## Unknowns (UNKNOWN)
+## Known unknowns
 
-- Sarvam AI's API surface (endpoint, auth, JSON mode, context limits, Hindi/Bengali handling, vision/OCR support).
-- Which fallback provider to use, and its API.
-- OCR approach for the scanned quotation: Tesseract (needs system package, `hin`/`ben` data) vs provider vision.
-- How requirements arriving by WhatsApp/voice should be represented (the data pack has none; we make synthetic samples).
-- Whether term parameters (deposit %, retention period) vary by project.
-- Expected quotation count per RFQ beyond four, and whether partial-item quotes are normal.
-- How management wants vendor performance captured later (out of scope now; we show no ratings).
-- Whether the deployed demo URL may hold any real data (we assume not).
+- Sarvam live API behaviour and quota under the user's account are UNKNOWN until tested with `SARVAM_API_KEY`.
+- OCR accuracy on the private scanned quotation is UNKNOWN until a permitted real-data run and human verification.
+- Render persistent storage configuration is deployment-specific and has not been verified here.

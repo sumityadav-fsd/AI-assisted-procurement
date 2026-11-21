@@ -1,66 +1,89 @@
-# Vinayak ProcureAI
+# Vinayak ProcureAI — local MVP
 
-AI-assisted procurement **decision support** for construction procurement: requirement emails and BOQs in, evidence-backed
-comparative statement out. A human makes the final decision. Built for Vibe Coders Hackathon 3 (Kolkata, 21 Nov 2026).
+Single FastAPI process serving a plain HTML/CSS/vanilla-JS interface. No React, Vite, Node runtime, or frontend build.
 
-> Status: architecture + minimal working skeleton. Only `GET /api/health` is functional; other endpoints validate input and return `501`.
-> Read [CONTEXT.md](CONTEXT.md) first, then [ARCHITECTURE.md](ARCHITECTURE.md) and [API_CONTRACT.md](API_CONTRACT.md).
+## Run locally (Windows PowerShell)
 
-## Stack
+From repository root:
 
-React + Vite · FastAPI · Pydantic v2 · SQLite · Sarvam AI (primary, unverified) + fallback provider · one Docker container.
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r backend\requirements-dev.txt
+Copy-Item .env.example .env
+# Put SARVAM_API_KEY in .env if available. No key is required for synthetic demo mode.
+cd backend
+uvicorn app.main:app --reload --port 8000
+```
 
-## Dependencies (approved list: no additions without approval)
+Open http://localhost:8000. API docs: http://localhost:8000/docs.
 
-- Backend runtime: `fastapi`, `uvicorn`, `pydantic`, `python-multipart` (uploads), `httpx` (AI provider HTTP calls)
-- Backend dev: `pytest`
-- Frontend: `react`, `react-dom`; dev: `vite`, `@vitejs/plugin-react`
-- **Proposed, NOT installed (needs approval, Member 3 to justify):** an Excel reader (`openpyxl`), a PDF text/table reader (`pdfplumber` or `pypdf`), OCR (`pytesseract` + system Tesseract, or LLM vision).
+## Apply the review patch to your clone
 
-## Setup and run
+Clone the architecture branch and create the local build branch:
 
-Prerequisites: Python 3.13, Node 22+.
+```powershell
+git clone --branch architecture/initial-skeleton https://github.com/sumityadav-fsd/AI-assisted-procurement.git
+cd AI-assisted-procurement
+git switch -c mvp/build
+```
 
-```bash
-git config core.hooksPath .githooks        # guard: forbidden files + 16:45 IST commit cutoff
-cp .env.example .env                       # fill locally; never commit
+Extract the review ZIP beside the clone (the folder will be named `VinayakProcureAI-ReviewBuild`), then run its script:
 
-# Backend (terminal 1)
-python -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements-dev.txt
-cd backend && uvicorn app.main:app --reload --port 8000
+```powershell
+cd ..\VinayakProcureAI-ReviewBuild
+.\apply_to_repo.ps1 -RepoPath ..\AI-assisted-procurement
+cd ..\AI-assisted-procurement
+```
 
-# Frontend (terminal 2)
-cd frontend && npm install && npm run dev  # http://localhost:5173 (proxies /api -> :8000)
-# UI without a backend:  VITE_USE_MOCKS=true npm run dev
+The script only copies files; it does not stage, commit, push or merge. Inspect `git status` and review every change yourself.
 
-# Tests (from repo root)
+Enable the deadline/private-data guard once per clone:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+Run tests from repo root:
+
+```powershell
+$env:PYTHONPATH="backend"
 python -m pytest -q
 ```
 
-Check: `curl localhost:8000/api/health`, interactive docs at `http://localhost:8000/docs`.
+## Private Vinayak data
 
-## Docker (production-like)
+Extract the supplied data pack into `data_private/vinayak-vch3-data/` at repository root. This directory is gitignored. Never commit the ZIP, extracted files, derived real-data caches, vendor names, rates, or terms. The application loads the ERP workbook and RFQ terms from this private runtime directory. `ERP_CATALOGUE_PATH` can point to a different private catalogue workbook. If absent, those values remain UNKNOWN. `AI_SAMPLES_DIR` defaults to `data_private/ai_samples` so any real-data-derived cache remains private.
+
+## AI
+
+Sarvam chat uses the documented `POST https://api.sarvam.ai/v2/chat/completions` endpoint, `api-subscription-key` header and `sarvam-105b` model for text. Scanned PDFs/images use Sarvam Document AI Parse (`POST /doc-ai/v1/job/parse` plus documented status and download-url calls) when a key is configured. Set only `SARVAM_API_KEY` in `.env`.
+
+With a key, Sarvam structures quotation text into a Pydantic-validated extraction schema; it is instructed only to transcribe, never calculate. Without a key, email structuring and quotation extraction use deterministic parsing; Hindi/Bengali notes are retained unchanged with translation marked unavailable. The synthetic demo works offline. No fallback provider is configured. AI calls have one retry/repair; deterministic parsing precedes the private cache.
+
+## Scanned PDFs
+
+Text PDFs are parsed with pdfplumber. Sparse/scanned PDFs and images use Sarvam Document AI Parse when a key is configured. Otherwise local Tesseract OCR is attempted when the Docker image is built with `--build-arg INSTALL_OCR=true` (Poppler is included for PDFs). OCR accuracy must be reviewed; unreadable values remain UNKNOWN.
+
+## Comparison rules
+
+All financial calculations use Python Decimal. Quoted quantity/unit mismatches are blocking and excluded from totals until a human submits a UnitResolution with factor, reviewer and reason. GST basis/rate unknown => total UNKNOWN. Arithmetic checks compare quoted quantity × quoted rate against stated amount.
+
+## Docker / Render
 
 ```bash
 docker build -t vinayak-procureai .
-docker run --rm -p 8000:8000 --env-file .env vinayak-procureai   # UI + API at http://localhost:8000
+docker run --rm -p 8000:8000 --env-file .env vinayak-procureai
 ```
 
-Deploy on Render: New Web Service -> Docker -> this repo -> add the env vars from `.env.example` -> health check path `/api/health`.
-Railway fallback: same Dockerfile and variables. Note the SQLite file is on ephemeral disk.
+Optional OCR tools:
 
-## Repository layout and ownership
-
-```
-frontend/                     Member 1
-backend/app/api,schemas,services,ai,core, main.py    Member 2
-backend/app/document,procurement,database, tests/, docs/   Member 3
-root docs, Dockerfile, .gitignore, .env.example      Member 3 (root maintainer)
+```bash
+docker build --build-arg INSTALL_OCR=true -t vinayak-procureai .
 ```
 
-## Data handling (important)
+Render: create a Web Service from the public repository, choose Docker, set `SARVAM_API_KEY` if available, set health check path `/api/health`, and deploy. SQLite and uploads use the container filesystem; without a persistent disk they are ephemeral and may be lost on redeploy. For a short demo, use Load demo data after each fresh deployment.
 
-The hackathon data pack contains **real Vinayak documents**. Keep it outside this repo (it is gitignored by name). Use only
-synthetic fixtures (`tests/fixtures/synthetic_*`). Do not paste real content into samples, mocks, tests or docs.
-Delete local copies after the event as the data owner requested.
+## Scope / limitations
+
+The eight procurement endpoints are implemented as an MVP, plus `/api/demo/load`. Vendor extraction is heuristic and must be reviewed; line matching is conservative. No real-data extraction result or live Sarvam call is claimed as verified unless run with the user's key in their environment.

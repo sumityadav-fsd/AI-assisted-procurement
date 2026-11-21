@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vinayak ProcureAI</title><link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header><div><span class="eyebrow">CONSTRUCTION PROCUREMENT · DECISION SUPPORT</span><h1>Vinayak <em>ProcureAI</em></h1><p>From site requirement to evidence-backed vendor comparison.</p></div><button id="demoBtn" class="primary">Load demo data</button></header>
+<main>
+<div id="notice" class="notice">Synthetic demo mode is available without an API key. Real company documents must remain private.</div>
+<div id="error" class="error hidden"></div>
+<nav><a href="#intake">01 Intake</a><a href="#matching">02 ERP matching</a><a href="#rfq">03 RFQ</a><a href="#quotes">04 Quotations</a><a href="#comparison">05 Comparison</a><a href="#decision">06 Decision</a></nav>
+<section id="intake" class="panel"><div class="section-head"><div><small>STEP 01</small><h2>Requirement intake</h2></div><span class="pill">Email + Excel BOQ</span></div>
+<label>Requirement email<textarea id="emailText" rows="4" placeholder="Paste site requirement email text..."></textarea></label>
+<div class="grid"><label>Excel BOQ (.xlsx)<input id="boqFile" type="file" accept=".xlsx"></label><label>Optional Hindi/Bengali note<input id="noteText" placeholder="Additional site note"></label><label>Note language<select id="noteLang"><option value="">Not specified</option><option value="hi">Hindi</option><option value="bn">Bengali</option><option value="en">English</option></select></label></div>
+<button id="intakeBtn">Process requirement</button><div id="intakeOut"></div></section>
+<section id="matching" class="panel"><div class="section-head"><div><small>STEP 02</small><h2>ERP item matching</h2></div><span class="pill">Deterministic candidates</span></div>
+<p class="muted">ERP candidates load from the private workbook configured by ERP_CATALOGUE_PATH (or the default private data-pack path). Human confirmation is required.</p>
+<button id="matchBtn" disabled>Find ERP candidates</button><div id="matchOut"></div></section>
+<section id="rfq" class="panel"><div class="section-head"><div><small>STEP 03</small><h2>RFQ generator</h2></div><span class="pill">Human-confirmed item codes</span></div>
+<label>Response due date<input id="dueDate" type="date"></label><button id="rfqBtn" disabled>Generate RFQ text</button><div id="rfqOut"></div></section>
+<section id="quotes" class="panel"><div class="section-head"><div><small>STEP 04</small><h2>Vendor quotations</h2></div><span class="pill">PDF / Excel / image</span></div>
+<div class="grid"><label>Vendor name<input id="vendorName" placeholder="Enter vendor name"></label><label>Quotation file<input id="quoteFile" type="file" accept=".pdf,.xlsx,.png,.jpg,.jpeg"></label></div>
+<button id="uploadQuoteBtn" disabled>Upload quotation</button><div id="quotesOut"></div></section>
+<section id="comparison" class="panel"><div class="section-head"><div><small>STEP 05</small><h2>Comparative statement</h2></div><span class="pill strong">Deterministic · Decimal</span></div>
+<button id="compareBtn" disabled>Generate comparison</button><div id="comparisonOut"></div><div id="resolutionOut"></div></section>
+<section id="decision" class="panel"><div class="section-head"><div><small>STEP 06</small><h2>Shortlist & management decision</h2></div><span class="pill">Human decides</span></div>
+<button id="shortlistBtn" disabled>Generate rule-based shortlist</button><div id="shortlistOut"></div>
+<div class="grid"><label>Approver name<input id="approver" placeholder="Name of approver"></label><label>Decision<select id="decisionType"><option value="approve">Approve shortlisted vendor</option><option value="override">Override shortlist</option><option value="reject_all">Reject all quotations</option></select></label><label>Quotation ID<input id="selectedQuote" placeholder="Selected quotation ID"></label><label>Override reason (required for override)<input id="overrideReason" placeholder="Reason"></label></div>
+<button id="approveBtn" disabled>Record human decision</button><div id="approvalOut"></div></section>
+<section class="panel"><div class="section-head"><div><small>OBSERVABILITY</small><h2>AI processing traces</h2></div><span class="pill">Provider · status · latency</span></div><pre id="traceOut">No AI calls yet.</pre></section>
+</main><footer>Vinayak ProcureAI · Decision support only · Human approval required</footer>
+<script src="/static/app.js"></script>
+</body></html>

@@ -1,120 +1,103 @@
-"""LLM gateway: the ONLY place AI providers are called. OWNER: Member 2.
-
-Policy implemented here (and tested in tests/test_ai_gateway.py with fake providers):
-  1. If cached samples are enabled and a sample exists for `sample_key`, return it (trace: cached).
-  2. For each provider in order (primary, then fallback):
-       - call with a hard timeout (provider's job)
-       - validate output against the Pydantic model
-       - on invalid output: ONE repair attempt that shows the validation error to the model
-       - on provider error/timeout: move to the next provider (trace: failed, then fallback)
-  3. If everything fails: raise AIProviderUnavailable / AIOutputInvalid. Never fabricate output.
-
-Callers receive (validated_model, traces). Traces must be forwarded to the API response.
-"""
-from __future__ import annotations
-
-import json
-import time
+import hashlib, json, time
 from pathlib import Path
-from typing import Protocol, TypeVar
+from app.ai.providers import SarvamProvider
+from app.core.config import AI_USE_CACHED_SAMPLES, AI_SAMPLES_DIR
+from app.schemas.models import AITrace
 
-from pydantic import BaseModel, ValidationError
+class AIGateway:
+    def __init__(self, provider=None):
+        self.provider=provider or SarvamProvider()
 
-from app.core.errors import AIOutputInvalid, AIProviderUnavailable
-from app.schemas.common import AITrace
-
-T = TypeVar("T", bound=BaseModel)
-
-
-class ProviderError(Exception):
-    """Network error, timeout, auth failure or non-2xx from a provider."""
-
-
-class LLMProvider(Protocol):
-    name: str
-    model: str | None
-
-    def complete(self, system: str, user: str, timeout_s: float) -> str:
-        """Return the raw model text (expected to be JSON). Raise ProviderError on failure."""
-        ...
-
-
-class Gateway:
-    def __init__(
-        self,
-        providers: list[LLMProvider],
-        timeout_s: float = 30.0,
-        samples_dir: str | None = None,
-        use_cached_samples: bool = False,
-    ):
-        self.providers = providers
-        self.timeout_s = timeout_s
-        self.samples_dir = Path(samples_dir) if samples_dir else None
-        self.use_cached_samples = use_cached_samples
-
-    def run_structured(
-        self, step: str, system: str, user: str, model_cls: type[T], sample_key: str | None = None
-    ) -> tuple[T, list[AITrace]]:
-        traces: list[AITrace] = []
-
-        cached = self._load_sample(sample_key, model_cls)
-        if cached is not None:
-            traces.append(AITrace(step=step, provider="cache", status="cached"))
-            return cached, traces
-
-        last_invalid: str | None = None
-        for idx, provider in enumerate(self.providers):
-            ok_status = "ok" if idx == 0 else "fallback"
-            prompt = user
-            for attempt in (1, 2):
-                started = time.monotonic()
-                try:
-                    raw = provider.complete(system, prompt, self.timeout_s)
-                except ProviderError as exc:
-                    traces.append(self._trace(step, provider, attempt, "failed", started, str(exc)))
-                    break  # provider down -> next provider, no repair attempt
-                try:
-                    parsed = model_cls.model_validate(json.loads(_strip_fences(raw)))
-                except (ValidationError, ValueError) as exc:
-                    last_invalid = str(exc)[:500]
-                    traces.append(self._trace(step, provider, attempt, "failed", started, last_invalid))
-                    prompt = (
-                        f"{user}\n\nYour previous output was invalid:\n{last_invalid}\n"
-                        "Return corrected JSON only."
-                    )
-                    continue
-                status = ok_status if attempt == 1 else "repaired"
-                traces.append(self._trace(step, provider, attempt, status, started, None))
-                return parsed, traces
-
-        if last_invalid is not None:
-            raise AIOutputInvalid(f"AI output failed validation for step '{step}': {last_invalid}")
-        raise AIProviderUnavailable(f"No AI provider available for step '{step}'")
-
-    def _load_sample(self, key: str | None, model_cls: type[T]) -> T | None:
-        if not (self.use_cached_samples and key and self.samples_dir):
-            return None
-        path = self.samples_dir / f"{key}.json"
-        if not path.is_file():
-            return None
-        return model_cls.model_validate_json(path.read_text(encoding="utf-8"))
+    def _cache_file(self, step, prompt):
+        key=hashlib.sha256((step+"|"+prompt).encode()).hexdigest()
+        return AI_SAMPLES_DIR/f"{key}.json"
 
     @staticmethod
-    def _trace(step: str, p: LLMProvider, attempt: int, status: str, started: float, error: str | None) -> AITrace:
-        return AITrace(
-            step=step,
-            provider=p.name,
-            model=p.model,
-            attempt=attempt,
-            status=status,  # type: ignore[arg-type]
-            latency_ms=int((time.monotonic() - started) * 1000),
-            error=error,
-        )
+    def _write_cache(cache, result):
+        # Cache is always under AI_SAMPLES_DIR (default: gitignored data_private/).
+        try:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            temporary=cache.with_suffix(".tmp")
+            temporary.write_text(json.dumps(result, ensure_ascii=False, default=str), encoding="utf-8")
+            temporary.replace(cache)
+        except OSError:
+            # A read-only deployment may not be able to cache; provider output is still valid.
+            return
 
+    async def structured(self, step, prompt, schema, validator, deterministic):
+        traces=[]
+        cache=self._cache_file(step,prompt)
+        messages=[{"role":"system","content":"Return only JSON matching the supplied schema. Never invent quantities, item codes, rates or commercial facts."},
+                  {"role":"user","content":prompt}]
+        started=time.monotonic()
+        first_error=None
+        raw=None
+        try:
+            raw=await self.provider.complete(messages,schema)
+            try:
+                result=validator(json.loads(raw))
+                self._write_cache(cache,result)
+                return result,[AITrace(step=step,provider="sarvam",model=self.provider.model,status="ok",attempt=1,
+                    latency_ms=int((time.monotonic()-started)*1000))]
+            except Exception as invalid:
+                first_error=f"Invalid structured response: {invalid}"
+        except Exception as exc:
+            first_error=str(exc)
 
-def _strip_fences(raw: str) -> str:
-    text = raw.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[1] if "\n" in text else ""
-        text = text.rsplit("```", 1)[0]
-    return text.strip()
+        # Exactly one repair/retry, whether the first response was invalid or the
+        # first provider attempt failed transiently.
+        repair_messages=list(messages)
+        if raw is not None:
+            repair_messages.extend([
+                {"role":"assistant","content":raw},
+                {"role":"user","content":f"Repair the JSON to satisfy the supplied schema. Validation error: {first_error}. Return JSON only."},
+            ])
+        else:
+            repair_messages.insert(0,{"role":"system","content":"This is the single permitted retry. Return only JSON matching the schema; do not infer missing facts."})
+        try:
+            repaired=await self.provider.complete(repair_messages,schema)
+            result=validator(json.loads(repaired))
+            self._write_cache(cache,result)
+            return result,[AITrace(step=step,provider="sarvam",model=self.provider.model,status="repaired",attempt=2,
+                latency_ms=int((time.monotonic()-started)*1000),error=first_error[:200] if first_error else None)]
+        except Exception as second:
+            second_error=str(second)
+            traces.append(AITrace(step=step,provider="sarvam",model=self.provider.model,status="failed",attempt=2,
+                latency_ms=int((time.monotonic()-started)*1000),error=second_error[:200]))
+
+        try:
+            fallback=deterministic()
+        except Exception as deterministic_error:
+            fallback=None
+            traces.append(AITrace(step=step,provider="deterministic-parser",status="failed",error=str(deterministic_error)[:200]))
+        if fallback:
+            return validator(fallback),traces+[AITrace(step=step,provider="deterministic-parser",status="fallback")]
+        if AI_USE_CACHED_SAMPLES and cache.exists():
+            return validator(json.loads(cache.read_text(encoding="utf-8"))),traces+[AITrace(step=step,provider="private-cache",status="cached")]
+        raise RuntimeError(f"No valid AI, deterministic, or cached result for {step}: {second_error}")
+
+    async def text(self, step, prompt, deterministic_text=None):
+        started=time.monotonic()
+        cache=self._cache_file(step,prompt)
+        try:
+            result=await self.provider.complete([{"role":"user","content":prompt}])
+            self._write_cache(cache,{"text":result})
+            return result,[AITrace(step=step,provider="sarvam",model=self.provider.model,status="ok",
+                                   latency_ms=int((time.monotonic()-started)*1000))]
+        except Exception as first:
+            try:
+                result=await self.provider.complete([{"role":"system","content":"Return a concise accurate response. Do not infer missing facts."},
+                    {"role":"user","content":prompt},{"role":"assistant","content":""},
+                    {"role":"user","content":f"Retry once. Previous provider error: {first}"}])
+                self._write_cache(cache,{"text":result})
+                return result,[AITrace(step=step,provider="sarvam",model=self.provider.model,status="repaired",attempt=2,
+                                       latency_ms=int((time.monotonic()-started)*1000),error=str(first)[:200])]
+            except Exception as second:
+                traces=[AITrace(step=step,provider="sarvam",model=self.provider.model,status="failed",attempt=2,
+                    latency_ms=int((time.monotonic()-started)*1000),error=str(second)[:200])]
+                if deterministic_text:
+                    return deterministic_text,traces+[AITrace(step=step,provider="deterministic-parser",status="fallback")]
+                if AI_USE_CACHED_SAMPLES and cache.exists():
+                    cached=json.loads(cache.read_text(encoding="utf-8"))
+                    return cached.get("text"),traces+[AITrace(step=step,provider="private-cache",status="cached")]
+                return None,traces

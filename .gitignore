@@ -1,25 +1,15 @@
-# --- Secrets / environment ---
 .env
 .env.*
 !.env.example
-
-# --- Real company data (NEVER commit). Hackathon data pack and any extracts of it ---
-vinayak-vch3-data/
 data_private/
+vinayak-vch3-data/
 *.zip
-
-# --- Runtime data: database, uploads, generated files ---
 backend/data/
+backend/app/ai/samples/real_*
 uploads/
 *.db
 *.sqlite
 *.sqlite3
-generated/
-exports/
-tmp/
-*.tmp
-
-# --- Python ---
 __pycache__/
 *.py[cod]
 .venv/
@@ -30,15 +20,7 @@ venv/
 *.egg-info/
 .coverage
 htmlcov/
-
-# --- Node / frontend ---
-node_modules/
-frontend/dist/
-.vite/
-npm-debug.log*
-
-# --- OS / editor ---
 .DS_Store
 Thumbs.db
-.idea/
 .vscode/
+.idea/

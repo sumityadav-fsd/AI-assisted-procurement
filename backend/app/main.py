@@ -1,39 +1,30 @@
-"""FastAPI entry point. OWNER: Member 2.
-
-Run:  uvicorn app.main:app --reload --port 8000   (from backend/)
-In Docker the built React app (frontend/dist) is served from the same process.
-"""
-from __future__ import annotations
-
-from pathlib import Path
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
-
+from fastapi.responses import FileResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from pathlib import Path
+from uuid import uuid4
 from app.api.routes import router
-from app.core.config import APP_VERSION, load_settings
-from app.core.errors import register_error_handlers
-from app.database.db import init_db
+from app.core.errors import AppError, app_error_handler, validation_error_handler, http_error_handler, generic_error_handler
 
+APP_DIR=Path(__file__).resolve().parent
+app=FastAPI(title="Vinayak ProcureAI",version="1.0.0")
+app.add_exception_handler(AppError,app_error_handler)
+app.add_exception_handler(RequestValidationError,validation_error_handler)
+app.add_exception_handler(StarletteHTTPException,http_error_handler)
+app.add_exception_handler(Exception,generic_error_handler)
 
-def create_app() -> FastAPI:
-    settings = load_settings()
-    app = FastAPI(title="Vinayak ProcureAI", version=APP_VERSION)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    register_error_handlers(app)
-    init_db(settings.database_path)
-    app.include_router(router)
+@app.middleware("http")
+async def request_id(request: Request, call_next):
+    request.state.request_id="req_"+uuid4().hex[:12]
+    response=await call_next(request)
+    response.headers["X-Request-ID"]=request.state.request_id
+    return response
 
-    dist = Path(settings.frontend_dist)
-    if dist.is_dir():  # only present in the Docker image / after `npm run build`
-        app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")
-    return app
+app.include_router(router)
+app.mount("/static",StaticFiles(directory=APP_DIR/"static"),name="static")
 
-
-app = create_app()
+@app.get("/",include_in_schema=False)
+def index():
+    return FileResponse(APP_DIR/"static"/"index.html")

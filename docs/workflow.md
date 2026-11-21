@@ -1,35 +1,24 @@
-# Procurement workflow (as the product models it)
+# Procurement workflow — MVP
 
-Owner: Member 3. Derived from the problem statement. **UNKNOWN:** Vinayak's real 12-step SOP detail has not been mapped here yet
-(Member 3: summarise it in your own words, without copying real data, once read).
+This is a product-level summary. It does not reproduce any company-specific source documents or terms.
 
-## Today (manual) vs with ProcureAI
-
-| # | Stage | Who | ProcureAI support |
+| Stage | Input | ProcureAI support | Human checkpoint |
 |---|---|---|---|
-| 1 | Site sends requirement (email, BOQ sheet, sometimes WhatsApp/voice note) | Site engineer | **Intake**: structure email + BOQ + optional Hindi/Bengali note |
-| 2 | Contracts team maps lines to ERP item codes | Contracts & Planning | **Match**: suggestions, confidence, near-duplicate warnings; human confirms |
-| 3 | RFQ drafted and emailed to vendors with six standard terms | Contracts & Planning | **RFQ generator** (text for the user to send; we do not send email) |
-| 4 | Vendors reply with quotations in their own formats (one may be a scan) | Vendors | **Quotation intelligence**: extract lines, rates, GST, terms, with evidence |
-| 5 | Comparative statement built by hand | Contracts & Planning | **Comparison**: normalised, deterministic, flagged |
-| 6 | Management reviews, negotiates, approves rates | Management | **Decision**: rule-based shortlist, evidence, human approval/override |
-| 7+ | Work order, vendor onboarding, etc. | | **Out of scope** |
+| 1. Requirement intake | Requirement email, Excel BOQ, optional Hindi/Bengali note | Structure project/scope; read BOQ cells deterministically | Review missing or ambiguous lines |
+| 2. ERP matching | Requirement lines and private ERP workbook | Deterministic lexical candidates, confidence and near-duplicate warnings | Confirm each ERP code |
+| 3. RFQ | Confirmed codes, quantities and six runtime terms | Generate copyable RFQ text | Review and send RFQ outside the app |
+| 4. Quotations | Vendor PDF, Excel or image files | Extract lines, rates, quantities, GST and terms with evidence | Review OCR/extraction and line mapping |
+| 5. Comparison | RFQ plus 2–6 quotations | Decimal calculations, GST, term differences and flags | Supply UnitResolution for quantity/unit mismatch |
+| 6. Decision | Comparative statement and shortlist | Rule-based shortlist, reasons and evidence | Approve, override with reason, or reject all |
 
-## Human-in-the-loop checkpoints
+## Safety checkpoints
 
-1. After matching: human confirms/changes every ERP code before an RFQ is generated.
-2. After comparison: human resolves each unit/quantity mismatch (supplies a conversion factor) or leaves the vendor in `pending_review`.
-3. At the end: human approves, overrides (reason mandatory) or rejects all. The system never selects a vendor.
+- LLM output never supplies BOQ quantities, ERP item codes, rates, calculated totals or approval decisions.
+- ERP candidates are generated deterministically from the configured catalogue; only returned codes can be selected.
+- A mismatch or unknown unit blocks comparison totals until a human resolves it.
+- Unknown GST basis/rate means the GST-inclusive total is UNKNOWN.
+- The app never emails vendors, creates work orders or autonomously selects a vendor.
 
-## Standard commercial terms (six, keyed)
+## AI failure sequence
 
-`pf_esi_registration`, `tds`, `security_deposit`, `gst_extra`, `water_electricity_hutment`, `safety_ppe`.
-Wording and parameters (e.g. deposit %, release period) live in a synthetic config/fixture, not in code.
-**UNKNOWN:** whether the parameters vary per project (see mentor questions).
-
-## Failure handling the demo must show
-
-- AI provider times out -> fallback provider -> cached sample; each shown in the AI trace panel.
-- Scanned quotation with weak OCR -> `LOW_OCR_CONFIDENCE`, values shown with evidence, never silently trusted.
-- Vendor quotes a different quantity or unit -> flagged, excluded from totals until a human resolves.
-- GST not stated -> total shown as UNKNOWN, not guessed.
+Sarvam is the only configured provider. For structured output the gateway allows one repair/retry. If that fails, it uses deterministic parsing where available, then an explicitly configured cache under `AI_SAMPLES_DIR`. The default cache directory is gitignored `data_private/ai_samples`. The offline demo uses synthetic data and does not call the provider.

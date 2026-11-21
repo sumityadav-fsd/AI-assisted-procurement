@@ -1,109 +1,76 @@
-"""HTTP routes. OWNER: Member 2.
-
-Every endpoint here already enforces the request contract (FastAPI + Pydantic). Business logic
-is NOT implemented yet: handlers raise NotImplementedYet (HTTP 501, standard error envelope).
-Replace each `raise` with a call into app.services.* — keep handlers thin.
-"""
-from __future__ import annotations
-
-import sqlite3
-from typing import Annotated, Literal
-
-from fastapi import APIRouter, File, Form, UploadFile
-from pydantic import BaseModel
-
-from app.core.config import APP_VERSION, load_settings
-from app.core.errors import NotImplementedYet
-from app.database.db import connect
-from app.schemas.comparisons import (
-    ApprovalRequest,
-    ApprovalResponse,
-    ComparisonRequest,
-    ComparisonResponse,
-    ShortlistRequest,
-    ShortlistResponse,
+from fastapi import APIRouter, UploadFile, File, Form
+import os
+from app.core.config import MAX_UPLOAD_MB
+from app.core.errors import AppError
+from app.schemas.models import (
+    IntakeResponse, MatchRequest, MatchResponse, RfqRequest, RfqResponse,
+    QuotationResponse, ComparisonRequest, ComparisonResponse, ShortlistRequest,
+    ShortlistResponse, ApprovalRequest, ApprovalResponse,
 )
-from app.schemas.quotations import QuotationResponse
-from app.schemas.requirements import IntakeResponse, MatchRequest, MatchResponse
-from app.schemas.rfq import RfqRequest, RfqResponse
+from app.services import pipeline
 
-router = APIRouter(prefix="/api")
+router=APIRouter(prefix="/api")
 
-
-class AIStatus(BaseModel):
-    primary_configured: bool
-    fallback_configured: bool
-    cached_samples_enabled: bool
-
-
-class HealthResponse(BaseModel):
-    status: Literal["ok", "degraded"]
-    version: str
-    database: Literal["ok", "error"]
-    ai: AIStatus
-
-
-@router.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    s = load_settings()
-    try:
-        conn = connect(s.database_path)
-        conn.execute("SELECT 1")
-        conn.close()
-        db = "ok"
-    except sqlite3.Error:
-        db = "error"
-    return HealthResponse(
-        status="ok" if db == "ok" else "degraded",
-        version=APP_VERSION,
-        database=db,  # type: ignore[arg-type]
-        ai=AIStatus(
-            primary_configured=bool(s.sarvam_api_key),
-            fallback_configured=bool(s.fallback_provider and s.fallback_api_key),
-            cached_samples_enabled=s.ai_use_cached_samples,
-        ),
-    )
-
+@router.get("/health")
+def health():
+    return pipeline.health_status()
 
 @router.post("/requirements/intake", response_model=IntakeResponse)
-def intake(
-    email_text: Annotated[str, Form(min_length=1)],
-    boq_file: Annotated[UploadFile | None, File()] = None,
-    note_text: Annotated[str | None, Form()] = None,
-    note_language: Annotated[Literal["en", "hi", "bn"] | None, Form()] = None,
-) -> IntakeResponse:
-    raise NotImplementedYet("requirements/intake")
-
+async def requirement_intake(email_text: str=Form(...), boq_file: UploadFile|None=File(None),
+                             note_text: str|None=Form(None), note_language: str|None=Form(None)):
+    path=None
+    if boq_file:
+        if not (boq_file.filename or "").lower().endswith(".xlsx"):
+            raise AppError("UNSUPPORTED_FILE_TYPE","BOQ must be .xlsx",415)
+        content=await boq_file.read()
+        if len(content)>MAX_UPLOAD_MB*1024*1024:
+            raise AppError("FILE_TOO_LARGE","Upload exceeds configured limit",413)
+        path=pipeline.store_boq_upload(content)
+    return await pipeline.intake(email_text,path,note_text,note_language)
 
 @router.post("/requirements/match", response_model=MatchResponse)
-def match(body: MatchRequest) -> MatchResponse:
-    raise NotImplementedYet("requirements/match")
-
+def requirement_match(body: MatchRequest):
+    result=pipeline.match_requirement(body.requirement_id,body.line_nos)
+    if not result:
+        raise AppError("NOT_FOUND","Requirement not found",404)
+    return result
 
 @router.post("/rfq/generate", response_model=RfqResponse)
-def rfq_generate(body: RfqRequest) -> RfqResponse:
-    raise NotImplementedYet("rfq/generate")
-
+def rfq_generate(body: RfqRequest):
+    result=pipeline.generate_rfq(body)
+    if not result:
+        raise AppError("NOT_FOUND","Requirement not found",404)
+    if result.get("error"):
+        raise AppError("MATCH_CONFIRMATION_REQUIRED",result["error"],422)
+    return result
 
 @router.post("/quotations/upload", response_model=QuotationResponse)
-def quotation_upload(
-    rfq_id: Annotated[str, Form(min_length=1)],
-    vendor_name: Annotated[str, Form(min_length=1)],
-    file: Annotated[UploadFile, File()],
-) -> QuotationResponse:
-    raise NotImplementedYet("quotations/upload")
-
+async def quotations_upload(rfq_id: str=Form(...), vendor_name: str=Form(...), file: UploadFile=File(...)):
+    content=await file.read()
+    if len(content)>MAX_UPLOAD_MB*1024*1024:
+        raise AppError("FILE_TOO_LARGE","Upload exceeds configured limit",413)
+    result=await pipeline.upload_quotation(rfq_id,vendor_name,file.filename or "quotation",content)
+    if not result:
+        raise AppError("NOT_FOUND","RFQ not found",404)
+    if result.get("error"):
+        raise AppError("UNSUPPORTED_FILE_TYPE",result["error"],415)
+    return result
 
 @router.post("/comparisons/generate", response_model=ComparisonResponse)
-def comparison_generate(body: ComparisonRequest) -> ComparisonResponse:
-    raise NotImplementedYet("comparisons/generate")
-
+def comparisons_generate(body: ComparisonRequest):
+    return pipeline.generate_comparison_for_ids(body.rfq_id,body.quotation_ids,body.resolutions)
 
 @router.post("/comparisons/{comparison_id}/shortlist", response_model=ShortlistResponse)
-def shortlist(comparison_id: str, body: ShortlistRequest | None = None) -> ShortlistResponse:
-    raise NotImplementedYet("comparisons/shortlist")
-
+def comparisons_shortlist(comparison_id: str, body: ShortlistRequest|None=None):
+    result=pipeline.shortlist(comparison_id,body.rules.model_dump() if body else None)
+    if not result:
+        raise AppError("NOT_FOUND","Comparison not found",404)
+    return result
 
 @router.post("/approvals/{comparison_id}", response_model=ApprovalResponse)
-def approve(comparison_id: str, body: ApprovalRequest) -> ApprovalResponse:
-    raise NotImplementedYet("approvals")
+def approvals(comparison_id: str, body: ApprovalRequest):
+    return pipeline.create_approval(comparison_id,body)
+
+@router.post("/demo/load")
+def load_demo():
+    return pipeline.load_demo()
