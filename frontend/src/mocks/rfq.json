@@ -1,0 +1,53 @@
+{
+  "rfq_id": "rfq_demo01",
+  "requirement_id": "req_demo01",
+  "subject": "Request for quotation: Synthetic Tower-X waterproofing",
+  "body_text": "Dear Sir,\n\nPlease quote for the items below...\n(synthetic)",
+  "items": [
+    {
+      "line_no": 1,
+      "item_code": "SYN-0001",
+      "description": "Wet-area coating, 2 coats",
+      "quantity": {
+        "value": "1200",
+        "unit": "sqm"
+      }
+    },
+    {
+      "line_no": 2,
+      "item_code": "SYN-0003",
+      "description": "Terrace membrane 4mm",
+      "quantity": {
+        "value": "300",
+        "unit": "sqm"
+      }
+    }
+  ],
+  "terms": [
+    {
+      "key": "pf_esi_registration",
+      "text": "Synthetic: PF and ESI registration required."
+    },
+    {
+      "key": "tds",
+      "text": "Synthetic: TDS deducted as per government norms."
+    },
+    {
+      "key": "security_deposit",
+      "text": "Synthetic: security deposit released after the defect period."
+    },
+    {
+      "key": "gst_extra",
+      "text": "Synthetic: GST payable extra."
+    },
+    {
+      "key": "water_electricity_hutment",
+      "text": "Synthetic: water, power point and labour hutment provided."
+    },
+    {
+      "key": "safety_ppe",
+      "text": "Synthetic: safety PPE within contractor's scope."
+    }
+  ],
+  "response_due_date": null
+}

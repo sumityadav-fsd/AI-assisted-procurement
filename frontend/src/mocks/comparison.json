@@ -1,0 +1,485 @@
+{
+  "comparison_id": "cmp_demo01",
+  "rfq_id": "rfq_demo01",
+  "created_at": "2026-01-01T10:00:00Z",
+  "computed_by": "deterministic",
+  "standard_terms": [
+    {
+      "key": "pf_esi_registration",
+      "text": "Synthetic: PF and ESI registration required."
+    },
+    {
+      "key": "tds",
+      "text": "Synthetic: TDS deducted as per government norms."
+    },
+    {
+      "key": "security_deposit",
+      "text": "Synthetic: security deposit released after the defect period."
+    },
+    {
+      "key": "gst_extra",
+      "text": "Synthetic: GST payable extra."
+    },
+    {
+      "key": "water_electricity_hutment",
+      "text": "Synthetic: water, power point and labour hutment provided."
+    },
+    {
+      "key": "safety_ppe",
+      "text": "Synthetic: safety PPE within contractor's scope."
+    }
+  ],
+  "rows": [
+    {
+      "rfq_line_no": 1,
+      "item_code": "SYN-0001",
+      "description": "Wet-area coating, 2 coats",
+      "rfq_quantity": {
+        "value": "1200",
+        "unit": "sqm"
+      },
+      "cells": [
+        {
+          "quotation_id": "quo_a",
+          "vendor_name": "Vendor A (synthetic)",
+          "status": "comparable",
+          "quoted_quantity": {
+            "value": "1200",
+            "unit": "sqm"
+          },
+          "rate": "400",
+          "amount_at_rfq_qty": "480000",
+          "amount_stated_by_vendor": null,
+          "flags": [],
+          "evidence": [
+            {
+              "document": "quo_a.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        },
+        {
+          "quotation_id": "quo_b",
+          "vendor_name": "Vendor B (synthetic)",
+          "status": "comparable",
+          "quoted_quantity": {
+            "value": "1200",
+            "unit": "sqm"
+          },
+          "rate": "420",
+          "amount_at_rfq_qty": "504000",
+          "amount_stated_by_vendor": null,
+          "flags": [],
+          "evidence": [
+            {
+              "document": "quo_b.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        },
+        {
+          "quotation_id": "quo_c",
+          "vendor_name": "Vendor C (synthetic)",
+          "status": "needs_review",
+          "quoted_quantity": {
+            "value": "12900",
+            "unit": "sqft"
+          },
+          "rate": "38",
+          "amount_at_rfq_qty": null,
+          "amount_stated_by_vendor": null,
+          "flags": [
+            {
+              "code": "UNIT_MISMATCH",
+              "severity": "blocking",
+              "message": "Quoted in sqft; RFQ is sqm. Needs human resolution.",
+              "evidence": [
+                {
+                  "document": "quo_c.pdf",
+                  "page": 1,
+                  "locator": "line 8",
+                  "snippet": "Rate per sqft"
+                }
+              ]
+            }
+          ],
+          "evidence": [
+            {
+              "document": "quo_c.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        },
+        {
+          "quotation_id": "quo_d",
+          "vendor_name": "Vendor D (synthetic)",
+          "status": "comparable",
+          "quoted_quantity": {
+            "value": "1200",
+            "unit": "sqm"
+          },
+          "rate": "410",
+          "amount_at_rfq_qty": "492000",
+          "amount_stated_by_vendor": null,
+          "flags": [],
+          "evidence": [
+            {
+              "document": "quo_d.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rfq_line_no": 2,
+      "item_code": "SYN-0003",
+      "description": "Terrace membrane 4mm",
+      "rfq_quantity": {
+        "value": "300",
+        "unit": "sqm"
+      },
+      "cells": [
+        {
+          "quotation_id": "quo_a",
+          "vendor_name": "Vendor A (synthetic)",
+          "status": "comparable",
+          "quoted_quantity": {
+            "value": "300",
+            "unit": "sqm"
+          },
+          "rate": "900",
+          "amount_at_rfq_qty": "270000",
+          "amount_stated_by_vendor": null,
+          "flags": [],
+          "evidence": [
+            {
+              "document": "quo_a.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        },
+        {
+          "quotation_id": "quo_b",
+          "vendor_name": "Vendor B (synthetic)",
+          "status": "comparable",
+          "quoted_quantity": {
+            "value": "300",
+            "unit": "sqm"
+          },
+          "rate": "880",
+          "amount_at_rfq_qty": "264000",
+          "amount_stated_by_vendor": null,
+          "flags": [],
+          "evidence": [
+            {
+              "document": "quo_b.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        },
+        {
+          "quotation_id": "quo_c",
+          "vendor_name": "Vendor C (synthetic)",
+          "status": "comparable",
+          "quoted_quantity": {
+            "value": "300",
+            "unit": "sqm"
+          },
+          "rate": "870",
+          "amount_at_rfq_qty": "261000",
+          "amount_stated_by_vendor": null,
+          "flags": [],
+          "evidence": [
+            {
+              "document": "quo_c.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        },
+        {
+          "quotation_id": "quo_d",
+          "vendor_name": "Vendor D (synthetic)",
+          "status": "not_quoted",
+          "quoted_quantity": null,
+          "rate": null,
+          "amount_at_rfq_qty": null,
+          "amount_stated_by_vendor": null,
+          "flags": [
+            {
+              "code": "ITEM_NOT_QUOTED",
+              "severity": "blocking",
+              "message": "Vendor did not quote this item",
+              "evidence": []
+            }
+          ],
+          "evidence": [
+            {
+              "document": "quo_d.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "vendors": [
+    {
+      "quotation_id": "quo_a",
+      "vendor_name": "Vendor A (synthetic)",
+      "subtotal_comparable": "750000",
+      "gst_basis": "extra",
+      "gst_rate_percent": "18",
+      "gst_amount": "135000",
+      "total_incl_gst": "885000",
+      "lines_comparable": 2,
+      "lines_needs_review": 0,
+      "lines_not_quoted": 0,
+      "term_deviations": [
+        {
+          "key": "pf_esi_registration",
+          "status": "accepted",
+          "standard_text": "Synthetic: PF and ESI registration required.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "tds",
+          "status": "accepted",
+          "standard_text": "Synthetic: TDS deducted as per government norms.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "security_deposit",
+          "status": "accepted",
+          "standard_text": "Synthetic: security deposit released after the defect period.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "gst_extra",
+          "status": "accepted",
+          "standard_text": "Synthetic: GST payable extra.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "water_electricity_hutment",
+          "status": "accepted",
+          "standard_text": "Synthetic: water, power point and labour hutment provided.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "safety_ppe",
+          "status": "accepted",
+          "standard_text": "Synthetic: safety PPE within contractor's scope.",
+          "vendor_text": null,
+          "evidence": null
+        }
+      ],
+      "flags": []
+    },
+    {
+      "quotation_id": "quo_b",
+      "vendor_name": "Vendor B (synthetic)",
+      "subtotal_comparable": "768000",
+      "gst_basis": "extra",
+      "gst_rate_percent": "18",
+      "gst_amount": "138240",
+      "total_incl_gst": "906240",
+      "lines_comparable": 2,
+      "lines_needs_review": 0,
+      "lines_not_quoted": 0,
+      "term_deviations": [
+        {
+          "key": "pf_esi_registration",
+          "status": "accepted",
+          "standard_text": "Synthetic: PF and ESI registration required.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "tds",
+          "status": "accepted",
+          "standard_text": "Synthetic: TDS deducted as per government norms.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "security_deposit",
+          "status": "deviation",
+          "standard_text": "Synthetic: security deposit released after the defect period.",
+          "vendor_text": "Synthetic: 10% deposit",
+          "evidence": {
+            "document": "quo_b.pdf",
+            "page": 2,
+            "locator": "line 30",
+            "snippet": null
+          }
+        },
+        {
+          "key": "gst_extra",
+          "status": "accepted",
+          "standard_text": "Synthetic: GST payable extra.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "water_electricity_hutment",
+          "status": "accepted",
+          "standard_text": "Synthetic: water, power point and labour hutment provided.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "safety_ppe",
+          "status": "accepted",
+          "standard_text": "Synthetic: safety PPE within contractor's scope.",
+          "vendor_text": null,
+          "evidence": null
+        }
+      ],
+      "flags": []
+    },
+    {
+      "quotation_id": "quo_c",
+      "vendor_name": "Vendor C (synthetic)",
+      "subtotal_comparable": "261000",
+      "gst_basis": "unstated",
+      "gst_rate_percent": null,
+      "gst_amount": null,
+      "total_incl_gst": null,
+      "lines_comparable": 1,
+      "lines_needs_review": 1,
+      "lines_not_quoted": 0,
+      "term_deviations": [
+        {
+          "key": "pf_esi_registration",
+          "status": "accepted",
+          "standard_text": "Synthetic: PF and ESI registration required.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "tds",
+          "status": "accepted",
+          "standard_text": "Synthetic: TDS deducted as per government norms.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "security_deposit",
+          "status": "accepted",
+          "standard_text": "Synthetic: security deposit released after the defect period.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "gst_extra",
+          "status": "accepted",
+          "standard_text": "Synthetic: GST payable extra.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "water_electricity_hutment",
+          "status": "accepted",
+          "standard_text": "Synthetic: water, power point and labour hutment provided.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "safety_ppe",
+          "status": "accepted",
+          "standard_text": "Synthetic: safety PPE within contractor's scope.",
+          "vendor_text": null,
+          "evidence": null
+        }
+      ],
+      "flags": [
+        {
+          "code": "GST_UNSTATED",
+          "severity": "blocking",
+          "message": "GST basis not stated: UNKNOWN",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "quotation_id": "quo_d",
+      "vendor_name": "Vendor D (synthetic)",
+      "subtotal_comparable": "492000",
+      "gst_basis": "extra",
+      "gst_rate_percent": "18",
+      "gst_amount": "88560",
+      "total_incl_gst": "580560",
+      "lines_comparable": 1,
+      "lines_needs_review": 0,
+      "lines_not_quoted": 1,
+      "term_deviations": [
+        {
+          "key": "pf_esi_registration",
+          "status": "accepted",
+          "standard_text": "Synthetic: PF and ESI registration required.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "tds",
+          "status": "accepted",
+          "standard_text": "Synthetic: TDS deducted as per government norms.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "security_deposit",
+          "status": "accepted",
+          "standard_text": "Synthetic: security deposit released after the defect period.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "gst_extra",
+          "status": "accepted",
+          "standard_text": "Synthetic: GST payable extra.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "water_electricity_hutment",
+          "status": "accepted",
+          "standard_text": "Synthetic: water, power point and labour hutment provided.",
+          "vendor_text": null,
+          "evidence": null
+        },
+        {
+          "key": "safety_ppe",
+          "status": "accepted",
+          "standard_text": "Synthetic: safety PPE within contractor's scope.",
+          "vendor_text": null,
+          "evidence": null
+        }
+      ],
+      "flags": []
+    }
+  ],
+  "flags": []
+}
