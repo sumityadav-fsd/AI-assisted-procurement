@@ -1,0 +1,75 @@
+{
+  "comparison_id": "cmp_demo01",
+  "rules_applied": {
+    "max_vendors": 3,
+    "exclude_on_blocking_flags": true,
+    "exclude_if_term_rejected": []
+  },
+  "shortlist": [
+    {
+      "rank": 1,
+      "quotation_id": "quo_a",
+      "vendor_name": "Vendor A (synthetic)",
+      "total_incl_gst": "885000",
+      "reasons": [
+        {
+          "text": "Lowest total among fully comparable vendors (885000 incl. GST)",
+          "evidence": [
+            {
+              "document": "quo_a.pdf",
+              "page": 1,
+              "locator": "line 8",
+              "snippet": null
+            }
+          ]
+        }
+      ],
+      "caveats": []
+    },
+    {
+      "rank": 2,
+      "quotation_id": "quo_b",
+      "vendor_name": "Vendor B (synthetic)",
+      "total_incl_gst": "906240",
+      "reasons": [
+        {
+          "text": "Second lowest total among fully comparable vendors",
+          "evidence": []
+        }
+      ],
+      "caveats": [
+        {
+          "code": "TERM_DEVIATION",
+          "severity": "warning",
+          "message": "Security deposit term deviates from standard",
+          "evidence": []
+        }
+      ]
+    }
+  ],
+  "pending_review": [
+    {
+      "quotation_id": "quo_c",
+      "vendor_name": "Vendor C (synthetic)",
+      "reasons": [
+        {
+          "text": "Unit mismatch unresolved and GST unstated",
+          "evidence": []
+        }
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "quotation_id": "quo_d",
+      "vendor_name": "Vendor D (synthetic)",
+      "reasons": [
+        {
+          "text": "Did not quote item 2 (blocking flag)",
+          "evidence": []
+        }
+      ]
+    }
+  ],
+  "decision_support_only": true
+}

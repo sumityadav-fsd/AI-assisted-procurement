@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+vinayak-vch3-data/
+data_private/
+*.zip
+**/node_modules
+frontend/dist
+backend/data
+**/__pycache__
+.venv
+venv
+tests
+docs

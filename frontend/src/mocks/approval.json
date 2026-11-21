@@ -1,0 +1,11 @@
+{
+  "approval_id": "apr_demo01",
+  "comparison_id": "cmp_demo01",
+  "decision": "approve",
+  "selected_quotation_id": "quo_a",
+  "vendor_name": "Vendor A (synthetic)",
+  "is_override": false,
+  "approval_note": "Synthetic note: Vendor A (synthetic) approved by Demo Approver at rank 1 of the shortlist.",
+  "approver_name": "Demo Approver",
+  "decided_at": "2026-01-01T10:00:00Z"
+}
