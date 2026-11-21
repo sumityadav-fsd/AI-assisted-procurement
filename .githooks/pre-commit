@@ -1,14 +1,11 @@
 #!/bin/sh
-# Enable once per clone:  git config core.hooksPath .githooks
-# 1) Hackathon deadline: no commits after 16:45 IST on 2026-11-21.
-# 2) Block real-data / secret file names from being committed.
-
+# Enable with: git config core.hooksPath .githooks
+# Blocks commits after the hackathon cutoff and protects private data.
 now=$(TZ=Asia/Kolkata date +%Y%m%d%H%M)
-if [ "$now" -gt 202611211645 ] && [ "$now" -lt 202611220000 ]; then
+if [ "$now" -gt 202611211645 ]; then
   echo "BLOCKED: commit window closed at 16:45 IST (now: $(TZ=Asia/Kolkata date '+%H:%M'))." >&2
   exit 1
 fi
-
 bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -iE '(vinayak-vch3-data|\.zip$|\.db$|\.sqlite3?$|(^|/)\.env$|^data_private/|Quotation_|ERP_item_codes|Contractor_list|Procurement_SOP|BOQ_Specification|_email_)')
 if [ -n "$bad" ]; then
   echo "BLOCKED: forbidden files staged (real data / secrets):" >&2

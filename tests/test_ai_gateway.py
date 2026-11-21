@@ -1,64 +1,67 @@
-"""Gateway policy tests using FAKE providers (no network, no real AI)."""
-import json
+import asyncio
 
-import pytest
-from pydantic import BaseModel
-
-from app.ai.gateway import Gateway, ProviderError
-from app.core.errors import AIOutputInvalid, AIProviderUnavailable
+from app.ai.gateway import AIGateway
 
 
-class Out(BaseModel):
-    n: int
+class RecordingProvider:
+    name = "sarvam"
+    model = "sarvam-105b"
 
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = 0
 
-class Fake:
-    def __init__(self, name, responses):
-        self.name, self.model, self._r, self.calls = name, "m", list(responses), 0
-
-    def complete(self, system, user, timeout_s):
+    async def complete(self, messages, schema=None):
         self.calls += 1
-        r = self._r.pop(0)
-        if isinstance(r, Exception):
-            raise r
-        return r
+        value = self.responses.pop(0)
+        if isinstance(value, Exception):
+            raise value
+        return value
 
 
-def test_happy_path():
-    p = Fake("primary", ['{"n": 1}'])
-    out, tr = Gateway([p]).run_structured("s", "sys", "u", Out)
-    assert out.n == 1 and [t.status for t in tr] == ["ok"]
+def test_gateway_retries_provider_once_then_validates():
+    provider = RecordingProvider([TimeoutError("synthetic timeout"), '{"value":"recovered"}'])
+    result, traces = asyncio.run(AIGateway(provider).structured(
+        "synthetic_step", "synthetic prompt", {},
+        lambda value: value if isinstance(value.get("value"), str) else (_ for _ in ()).throw(ValueError()),
+        lambda: {"value": "deterministic"},
+    ))
+    assert result == {"value": "recovered"}
+    assert provider.calls == 2
+    assert traces[-1].status == "repaired"
+    assert traces[-1].attempt == 2
 
 
-def test_one_repair_then_success():
-    p = Fake("primary", ['{"n": "x"}', '```json\n{"n": 2}\n```'])
-    out, tr = Gateway([p]).run_structured("s", "sys", "u", Out)
-    assert out.n == 2 and [t.status for t in tr] == ["failed", "repaired"] and p.calls == 2
+def test_gateway_uses_deterministic_fallback_after_one_failed_retry():
+    provider = RecordingProvider([TimeoutError("synthetic timeout"), TimeoutError("synthetic retry timeout")])
+    result, traces = asyncio.run(AIGateway(provider).structured(
+        "synthetic_step", "synthetic prompt", {}, lambda value: value,
+        lambda: {"value": "synthetic deterministic result"},
+    ))
+    assert result["value"] == "synthetic deterministic result"
+    assert provider.calls == 2
+    assert traces[-1].provider == "deterministic-parser"
+    assert traces[-1].status == "fallback"
 
 
-def test_only_one_repair_attempt():
-    p = Fake("primary", ["bad", "bad", "never-called"])
-    with pytest.raises(AIOutputInvalid):
-        Gateway([p]).run_structured("s", "sys", "u", Out)
-    assert p.calls == 2
+def test_gateway_caches_validated_response_in_private_samples_dir(tmp_path, monkeypatch):
+    import app.ai.gateway as gateway_module
 
+    monkeypatch.setattr(gateway_module, "AI_SAMPLES_DIR", tmp_path)
+    provider = RecordingProvider(['{"value":"synthetic cached result"}'])
+    gateway = AIGateway(provider)
+    first, first_trace = asyncio.run(gateway.structured(
+        "synthetic_cache_step", "synthetic cache prompt", {}, lambda value: value,
+        lambda: {"value": "deterministic"},
+    ))
+    assert first["value"] == "synthetic cached result"
+    assert first_trace[0].status == "ok"
+    assert list(tmp_path.glob("*.json"))
 
-def test_provider_error_falls_back():
-    a = Fake("primary", [ProviderError("timeout")])
-    b = Fake("fallback", ['{"n": 3}'])
-    out, tr = Gateway([a, b]).run_structured("s", "sys", "u", Out)
-    assert out.n == 3 and [t.status for t in tr] == ["failed", "fallback"]
-
-
-def test_no_providers_raises_unavailable():
-    with pytest.raises(AIProviderUnavailable):
-        Gateway([]).run_structured("s", "sys", "u", Out)
-
-
-def test_cached_sample_used_without_calling_provider(tmp_path):
-    (tmp_path / "k.json").write_text(json.dumps({"n": 9}))
-    p = Fake("primary", [])
-    out, tr = Gateway([p], samples_dir=str(tmp_path), use_cached_samples=True).run_structured(
-        "s", "sys", "u", Out, sample_key="k"
-    )
-    assert out.n == 9 and tr[0].status == "cached" and p.calls == 0
+    offline = RecordingProvider([TimeoutError("synthetic offline"), TimeoutError("synthetic retry offline")])
+    second, second_trace = asyncio.run(AIGateway(offline).structured(
+        "synthetic_cache_step", "synthetic cache prompt", {}, lambda value: value,
+        lambda: None,
+    ))
+    assert second["value"] == "synthetic cached result"
+    assert second_trace[-1].status == "cached"
